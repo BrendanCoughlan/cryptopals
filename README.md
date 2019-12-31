@@ -1,7 +1,7 @@
 # WIP Cryptopals solutions
 These are my in-progress Python solutions to the 
 [Cryptopals crypto challenges](https://cryptopals.com/). 
-So far, I'm up to challenge 11. In addition to learning about cryptography I'm
+So far, I'm up to challenge 12. In addition to learning about cryptography I'm
 also doing these as an exercise in test-driven development.
 
 ## Missing files

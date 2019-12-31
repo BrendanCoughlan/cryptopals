@@ -15,9 +15,9 @@ from bitfiddle import brake_into_keysize_blocks
 from primitive_crypt import xor_buffers
 
 
-def detect_potential_repeating_ecb_blocks(ciphertext):
+def detect_potential_repeating_ecb_blocks(ciphertext, blocksize=16):
     seen = set()
-    for block in brake_into_keysize_blocks(ciphertext, 16):
+    for block in brake_into_keysize_blocks(ciphertext, blocksize):
         if block in seen:
             return True
         else:

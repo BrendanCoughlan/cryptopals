@@ -104,3 +104,21 @@ def test_challenge11():
     for ii in range(100):
         true_mode, detected_mode = cs.challenge_11_test()
         assert true_mode == detected_mode
+
+
+class TestChallenge12:
+    @pytest.fixture(autouse=True)
+    def set_up(self):
+        self.solver = cs.Challenge12Solver()
+
+    def test_blocksize(self):
+        assert self.solver.blocksize == 16
+
+    def test_is_ecb(self):
+        assert self.solver.is_ecb()
+
+    def test_solve(self):
+        correct_input = base64.b64decode(
+            util.bytes_from_file('inputs/12_input.txt'))
+        solved = self.solver.solve()
+        assert solved == correct_input
