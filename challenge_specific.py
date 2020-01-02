@@ -1,7 +1,9 @@
 import base64
 import secrets
 
+import kvserialize
 from block_crypt import cbc_encrypt, \
+    ecb_decrypt, \
     ecb_encrypt, \
     detect_potential_repeating_ecb_blocks, \
     strip_pkcs_7
@@ -132,3 +134,31 @@ class Challenge12Solver:
         prefix = bytes([0] * 2 * self.blocksize)
         return detect_potential_repeating_ecb_blocks(
             prefix, blocksize=self.blocksize)
+
+
+challenge_13_key = secrets.token_bytes(16)
+
+
+def challenge_13_profile_for(email):
+    profile = {
+        'email': email,
+        'uid': '10',
+        'role': 'user'
+    }
+    encoded = kvserialize.serialize_dict(profile).encode()
+    return ecb_encrypt(challenge_13_key, encoded)
+
+
+def challenge_13_is_admin(encrypted_profile):
+    decrypted = ecb_decrypt(challenge_13_key, encrypted_profile).decode()
+    profile = kvserialize.parse_kv_string(decrypted)
+    return profile['role'] == 'admin'
+
+
+def challenge_13_forge():
+    admin_block_input = \
+        'xxxxxxxxxxadmin\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b'
+    admin_block = challenge_13_profile_for(admin_block_input)[16:32]
+    intro_blocks_input = 'xxxxx@bla.com'
+    intro_blocks = challenge_13_profile_for(intro_blocks_input)[:32]
+    return intro_blocks + admin_block

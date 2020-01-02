@@ -122,3 +122,16 @@ class TestChallenge12:
             util.bytes_from_file('inputs/12_input.txt'))
         solved = self.solver.solve()
         assert solved == correct_input
+
+
+class TestChallenge13:
+    def test_transcode(self):
+        encoded_profile = cs.challenge_13_profile_for('bla@bla.bla')
+        assert not cs.challenge_13_is_admin(encoded_profile)
+
+    def test_escape(self):
+        encoded_profile = cs.challenge_13_profile_for('bla@bla.bla&role=admin')
+        assert not cs.challenge_13_is_admin(encoded_profile)
+
+    def test_forge(self):
+        assert cs.challenge_13_is_admin(cs.challenge_13_forge())
