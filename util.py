@@ -1,4 +1,5 @@
-__all_ = ["bytes_from_file", "string_from_file", "repeating_zip"]
+__all__ = ["bytes_from_file", "find_minimal", "random_blob", "repeating_zip",
+           "remove_nones", "string_from_file"]
 
 import secrets
 
