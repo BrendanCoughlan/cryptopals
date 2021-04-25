@@ -45,6 +45,7 @@ def find_minimal(gen, criterion):
     return best
 
 
+# noinspection PyPep8Naming
 class remove_nones:
     def __init__(self, gen):
         self.gen = gen
