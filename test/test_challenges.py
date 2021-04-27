@@ -1,6 +1,8 @@
 import base64
 
 import pytest
+# noinspection PyPackageRequirements
+# false alert, is in requirements as pycryptodome
 from Crypto.Cipher import AES
 
 import bitfiddle as bf

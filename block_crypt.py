@@ -9,6 +9,8 @@ __all__ = [
     "cbc_decrypt"
 ]
 
+# noinspection PyPackageRequirements
+# false alert, is in requirements as pycryptodome
 from Crypto.Cipher import AES
 
 from bitfiddle import brake_into_keysize_blocks
