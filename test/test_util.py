@@ -156,3 +156,12 @@ class TestRandomBlob:
             if seen_min and seen_max:
                 return
         assert False
+
+
+@hyp.given(
+    common=strat.binary(),
+    left_extra=strat.binary(),
+    right_extra=strat.binary())
+def test_equal_prefix_length(common, left_extra, right_extra):
+    assert util.equal_prefix_length(common + left_extra, common + right_extra) \
+           == len(common) + util.equal_prefix_length(left_extra, right_extra)

@@ -1,6 +1,7 @@
 __all__ = [
     "xor_pairs",
     "byte_from_int",
+    "get_block",
     "hamming_distance",
     "brake_into_keysize_blocks"
 ]
@@ -40,7 +41,11 @@ def hamming_distance(left, right):
         _single_byte_hamming_distance(pair) for pair in zip(left, right))
 
 
+def get_block(blob, blocksize, idx):
+    return blob[idx * blocksize: (idx + 1) * blocksize]
+
+
 def brake_into_keysize_blocks(blob, keysize):
     num_blocks = ceil(len(blob) / keysize)
     # noinspection PyTypeChecker
-    return [blob[ii * keysize:(ii + 1) * keysize] for ii in range(num_blocks)]
+    return [get_block(blob, keysize, ii) for ii in range(num_blocks)]

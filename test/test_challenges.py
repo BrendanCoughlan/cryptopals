@@ -1,5 +1,7 @@
 import base64
 
+import hypothesis as hyp
+import hypothesis.strategies as strat
 import pytest
 # noinspection PyPackageRequirements
 # false alert, is in requirements as pycryptodome
@@ -116,8 +118,9 @@ class TestChallenge12:
     def test_blocksize(self):
         assert self.solver.blocksize == 16
 
-    def test_is_ecb(self):
-        assert self.solver.is_ecb()
+    def test_prefix_and_suffix_length(self):
+        assert 0 == self.solver.prefix_length
+        assert len(self.solver.oracle._suffix) == self.solver.suffix_length
 
     def test_solve(self):
         correct_input = base64.b64decode(
@@ -137,3 +140,13 @@ class TestChallenge13:
 
     def test_forge(self):
         assert cs.challenge_13_is_admin(cs.challenge_13_forge())
+
+
+@hyp.given(prefix=strat.binary(), suffix=strat.binary())
+def test_challenge_14(prefix, suffix):
+    oracle = cs.Challenge14Oracle(prefix=prefix, suffix=suffix)
+    solver = cs.Challenge14Solver(oracle)
+    assert solver.blocksize == 16
+    assert len(prefix) == solver.prefix_length
+    assert len(suffix) == solver.suffix_length
+    assert solver.solve() == suffix

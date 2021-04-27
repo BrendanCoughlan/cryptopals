@@ -1,5 +1,10 @@
-__all__ = ["bytes_from_file", "find_minimal", "random_blob", "repeating_zip",
-           "remove_nones", "string_from_file"]
+__all__ = ["bytes_from_file",
+           "equal_prefix_length",
+           "find_minimal",
+           "random_blob",
+           "repeating_zip",
+           "remove_nones",
+           "string_from_file"]
 
 import secrets
 
@@ -73,3 +78,11 @@ def random_blob(min_bytes, max_bytes):
     if min_bytes < 0 or max_bytes < 0:
         raise ValueError('Negative e lengths are impossible')
     return secrets.token_bytes(rand_int_from_to(min_bytes, max_bytes))
+
+
+def equal_prefix_length(left, right):
+    max_possible = min(len(left), len(right))
+    for ii in range(max_possible):
+        if left[ii] != right[ii]:
+            return ii
+    return max_possible

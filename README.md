@@ -1,7 +1,7 @@
 # WIP Cryptopals solutions
 These are my in-progress Python solutions to the 
 [Cryptopals crypto challenges](https://cryptopals.com/). 
-So far, I'm up to challenge 13. In addition to learning about cryptography I'm
+So far, I'm up to challenge 14. In addition to learning about cryptography I'm
 also doing these as an exercise in test-driven development.
 
 ## Missing files
@@ -32,3 +32,14 @@ So it must be stripped.
 ### Challenge 7: AES in ECB mode
 This one makes it really important to treat the correct solution as bytes 
 rather than text, because with padding that actually makes a difference.
+
+### Challenge 14: Byte-at-a-time ECB decryption (Harder)
+This one was harder than it needed to be, because I thought myself into a
+corner on challenge 12.
+
+In challenge 12 one way to find the inserted text is now longer than the block
+size is to see that the first cyphertext block no longer changes if we change
+the byte immediately after the corresponding plaintext block. This doesn't work
+for challenge 14, where the insertion point for our text can be in the middle
+of a block. A better way is to think about how the size of the cyphertext
+changes as plaintext size increases.

@@ -5,10 +5,12 @@ import kvserialize
 from block_crypt import cbc_encrypt, \
     ecb_decrypt, \
     ecb_encrypt, \
-    detect_potential_repeating_ecb_blocks, \
-    strip_pkcs_7
+    detect_potential_repeating_ecb_blocks
+
 from util import bytes_from_file
 from util import random_blob
+from util import equal_prefix_length
+from bitfiddle import get_block
 
 
 def challenge_11_oracle(input_blob):
@@ -33,107 +35,145 @@ def challenge_11_test():
     return true_mode, detected_mode
 
 
-class Challenge12Oracle:
-    def __init__(self):
+class Challenge14Oracle:
+    def __init__(self, prefix, suffix):
         self._key = secrets.token_bytes(16)
-        self._suffix = base64.b64decode(bytes_from_file('inputs/12_input.txt'))
+        self._prefix = prefix
+        self._suffix = suffix
 
     def __call__(self, input_blob):
-        return ecb_encrypt(self._key, input_blob + self._suffix)
+        return ecb_encrypt(self._key, self._prefix + input_blob + self._suffix)
 
 
-class Challenge12Solver:
-
+class Challenge12Oracle(Challenge14Oracle):
     def __init__(self):
-        self.oracle = Challenge12Oracle()
-        self.known_bytes = b''
-        self.blocksize = self._find_blocksize()
-        self._init_padding_blob_accessors()
+        Challenge14Oracle.__init__(
+            self, b'', base64.b64decode(bytes_from_file('inputs/12_input.txt')))
 
-    def _find_blocksize(self):
-        # Basic idea:
-        # Try increasing number of zeros as prefixes
-        # We know we have reached the second block once the first one no
-        # longer changes
-        previous_first_block = None
-        max_possible_blocksize = len(self.oracle(b''))
-        for prefix_size in range(1, max_possible_blocksize + 1):
-            input_ = bytes([0] * prefix_size)
-            output = self.oracle(input_)
-            first_block_previous_size = output[:prefix_size - 1]
-            if first_block_previous_size == previous_first_block:
-                return prefix_size - 1
-            else:
-                previous_first_block = output[:prefix_size]
 
-    def _init_padding_blob_accessors(self):
+class Challenge14Solver:
 
-        padding_blobs = [bytes([0] * ii) for ii in range(self.blocksize)]
+    def __init__(self, oracle):
+        self.oracle = oracle
+        min_noticable_arg_length = self._min_noticable_arg_length()
+        self.blocksize = self._find_blocksize(min_noticable_arg_length)
+        num_prefix_only_blocks = self._num_prefix_only_blocks()
+        self.prefix_length = self._find_prefix_length(num_prefix_only_blocks)
+        self.suffix_length = self._find_suffix_length(min_noticable_arg_length)
 
-        def next_padding_blob():
-            """All zero padding putting next byte in position for decryption"""
-            return padding_blobs[self._next_empty_length()]
+    def _min_noticable_arg_length(self):
+        """Find minimum arg size to change ciphertext length."""
+        length_for_0 = len(self.oracle(b''))
+        ii = 0
+        while True:
+            ii += 1
+            length_for_ii = len(self.oracle(b'A' * ii))
+            if length_for_ii != length_for_0:
+                return ii
 
-        self._next_padding_blob = next_padding_blob
+    def _find_blocksize(self, min_noticable_arg_length):
+        length1 = len(self.oracle(b''))
+        length2 = len(self.oracle(b'A' * min_noticable_arg_length))
+        return length2 - length1
 
-        padding_encryptions = [self.oracle(blob) for blob in padding_blobs]
+    def _num_prefix_only_blocks(self):
+        """Whole blocks containing only prefix"""
+        # We find this by inserting different arguments and seeing how many
+        # blocks are identical in both cyphertexts
+        return \
+            (equal_prefix_length(self.oracle(b'A'), self.oracle(b'B'))
+             // self.blocksize)
 
-        def oracle_value_for_next_padding_blob():
-            return padding_encryptions[self._next_empty_length()]
+    def _find_prefix_length(self, num_prefix_only_blocks):
+        """Find length of the oracle's inserted prefix."""
+        # Basic idea: Find out how much padding is needed to completely fill
+        # the rest of the block containing the end of the prefix.
+        assert self._is_ecb()
+        for ii in range(self.blocksize):
+            length = self._try_prefix_padding_length(num_prefix_only_blocks, ii)
+            if length is not None:
+                return length
 
-        self._oracle_value_for_next_padding_blob = \
-            oracle_value_for_next_padding_blob
+    def _try_prefix_padding_length(self, num_prefix_only_blocks, padlength):
+        """Prefix length if this is the padding length for _find_prefix_length()"""
+        # Basic idea: If we insert a blob of equal bytes long enough to fill
+        # both the padding and the next two blocks of plaintext, then the next
+        # two blocks of cyphertext become equal.
+        test_blob_length = 2 * self.blocksize + padlength
+        if padlength == 0:
+            block_idx = num_prefix_only_blocks
+        else:
+            block_idx = num_prefix_only_blocks + 1
+        # We actually need to test two different filler bytes, because
+        # otherwise we might be fooled by the suffix starting with the filler
+        # bytes we try
+        for test_blob in [b'A' * test_blob_length, b'B' * test_blob_length]:
+            encrypted = self.oracle(test_blob)
+            first_block = \
+                get_block(encrypted, self.blocksize, block_idx)
+            second_block = \
+                get_block(encrypted, self.blocksize, block_idx + 1)
+            if first_block != second_block:
+                return None
+        return block_idx * self.blocksize - padlength
 
-    def _next_empty_length(self):
-        """Calculate length of needed all-zero prefix blob for next byte
+    def _find_suffix_length(self, min_noticeable_arg_length):
+        """Find length of the oracle's appended suffix."""
+        # Basic idea: if we know the minimum number of plaintext bytes leading
+        # to an increase of the cyphertext length and also the blocksize, then
+        # we know the total length of plaintext not under our control.
+        # Subtract the previously calculated prefix length from that, and the
+        # rest is suffix.
+        return \
+            (len(self.oracle(b'A' * min_noticeable_arg_length))
+             - self.blocksize
+             - min_noticeable_arg_length
+             - self.prefix_length)
 
-        The length is chosen to put the first unknown byte of the secret
-        suffix into the last byte of an otherwise known plaintext block
-        """
-        position = len(self.known_bytes)
-        return self.blocksize - 1 - (position % self.blocksize)
+    def _is_ecb(self):
+        input_blob = bytes([0] * 3 * self.blocksize)
+        # Two blocks to find repeating cyphertext, the third because we may not
+        # start at a block border
+        return detect_potential_repeating_ecb_blocks(
+            input_blob, blocksize=self.blocksize)
 
     def solve(self):
-        while True:
-            next_byte = self._decrypt_next_byte()
-            if next_byte is None:
-                break
-            self.known_bytes += bytes([next_byte])
-        return strip_pkcs_7(self.known_bytes)
+        known_bytes = b''
+        while len(known_bytes) < self.suffix_length:
+            known_bytes += bytes([self.guess_next_byte(known_bytes)])
+        return known_bytes
 
-    def _decrypt_next_byte(self):
-        for byte in range(256):
-            if self._test_guessed_byte(byte):
-                return byte
+    def guess_next_byte(self, known_bytes):
+        for ii in range(256):
+            if self.try_next_byte(known_bytes, ii):
+                return ii
 
-    def _test_guessed_byte(self, byte):
-        return self._guessed_next_encrypted_prefix(byte) == \
-               self._next_desired_encrypted_prefix()
+    def try_next_byte(self, known_bytes, byte):
+        # Basic idea same as in challenge 12:
+        # Inject enough padding to put the first unknown byte at the end of
+        # a block. Then try if it matches byte by alternatively injecting the
+        # known part of the suffix and the guessed byte, which should result
+        # in the same block.
+        fixed_bytes_length = self.prefix_length + len(known_bytes)
+        num_prior_blocks = fixed_bytes_length // 16
+        used_in_block = fixed_bytes_length % self.blocksize
+        padlength = self.blocksize - used_in_block - 1
+        testarg = b'A' * padlength
+        encrypted_block = get_block(
+            self.oracle(testarg),
+            self.blocksize,
+            num_prior_blocks)
+        comparison_block = get_block(
+            self.oracle(testarg + known_bytes + bytes([byte])),
+            self.blocksize,
+            num_prior_blocks)
+        return encrypted_block == comparison_block
 
-    def _guessed_next_encrypted_prefix(self, guessed_byte):
-        input_ = self._make_next_test_plaintext_prefix(guessed_byte)
-        encryption = self.oracle(input_)
-        return encryption[:self._next_test_prefix_length()]
 
-    def _next_desired_encrypted_prefix(self):
-        """Cipertext prefix for correctly guessed next byte"""
-        ciphertext = self._oracle_value_for_next_padding_blob()
-        length = self._next_test_prefix_length()
-        return ciphertext[:length]
+class Challenge12Solver(Challenge14Solver):
 
-    def _make_next_test_plaintext_prefix(self, guessed_byte):
-        return self._next_padding_blob() + \
-               self.known_bytes + \
-               bytes([guessed_byte])
-
-    def _next_test_prefix_length(self):
-        position = len(self.known_bytes)
-        return self._next_empty_length() + position + 1
-
-    def is_ecb(self):
-        prefix = bytes([0] * 2 * self.blocksize)
-        return detect_potential_repeating_ecb_blocks(
-            prefix, blocksize=self.blocksize)
+    def __init__(self):
+        Challenge14Solver.__init__(self, Challenge12Oracle())
 
 
 challenge_13_key = secrets.token_bytes(16)
