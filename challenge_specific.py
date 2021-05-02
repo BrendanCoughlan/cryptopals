@@ -5,7 +5,9 @@ import kvserialize
 from block_crypt import cbc_encrypt, \
     ecb_decrypt, \
     ecb_encrypt, \
-    detect_potential_repeating_ecb_blocks
+    detect_potential_repeating_ecb_blocks,\
+    cbc_decrypt
+from primitive_crypt import xor_buffers
 
 from util import bytes_from_file
 from util import random_blob
@@ -202,3 +204,31 @@ def challenge_13_forge():
     intro_blocks_input = 'xxxxx@bla.com'
     intro_blocks = challenge_13_profile_for(intro_blocks_input)[:32]
     return intro_blocks + admin_block
+
+
+class Challenge16Oracle:
+    def __init__(self):
+        self._key = secrets.token_bytes(16)
+        self._prefix = 'comment1=cooking%20MCs;userdata='
+        self._suffix = ';comment2=%20like%20a%20pound%20of%20bacon'
+
+    @staticmethod
+    def _escape(string):
+        return string.replace(';', '%3B').replace('=', '%3D')
+
+    def encrypt(self, string):
+        plaintext = self._prefix + self._escape(string) + self._suffix
+        return cbc_encrypt(self._key, bytes(16), plaintext.encode())
+
+    def is_admin(self, cyphertext):
+        plaintext = cbc_decrypt(self._key, bytes(16), cyphertext)
+        return b';admin=true' in plaintext
+
+
+def challenge_16_forge(oracle):
+    good = oracle.encrypt('')
+    block2 = b'%20MCs;userdata='
+    want = b';admin=true'
+    delta = xor_buffers(block2, want)
+    evil = xor_buffers(good[0:16], delta) + good[16:]
+    return evil

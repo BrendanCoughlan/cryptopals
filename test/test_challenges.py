@@ -151,9 +151,16 @@ def test_challenge_14(prefix, suffix):
     assert len(suffix) == solver.suffix_length
     assert solver.solve() == suffix
 
+
 def test_challenge_15():
     assert bc.strip_pkcs_7(b"ICE ICE BABY\x04\x04\x04\x04") == b"ICE ICE BABY"
     with pytest.raises(AssertionError):
         bc.strip_pkcs_7(b"ICE ICE BABY\x05\x05\x05\x05")
     with pytest.raises(AssertionError):
         bc.strip_pkcs_7(b"ICE ICE BABY\x01\x02\x03\x04")
+
+
+def test_challenge_16():
+    oracle = cs.Challenge16Oracle()
+    assert not oracle.is_admin(oracle.encrypt(';admin=true;'))
+    assert oracle.is_admin(cs.challenge_16_forge(oracle))
