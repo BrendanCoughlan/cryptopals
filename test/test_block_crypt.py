@@ -1,4 +1,5 @@
 import hypothesis as hyp
+import pytest
 
 import block_crypt as bc
 from . import strategies
@@ -27,6 +28,13 @@ class TestPadPkcs7:
         assert (len(padded) % blocksize) == 0
         stripped = bc.strip_pkcs_7(padded)
         assert blob == stripped
+
+    @hyp.given(
+        args=strategies.non_pkcs7_padded_blocksize_and_blob()
+    )
+    def test_invalid_exception(self, args):
+        with pytest.raises(bc.InvalidPaddingError):
+            bc.strip_pkcs_7(args[1])
 
 
 @hyp.given(

@@ -1,9 +1,11 @@
 __all__ = [
+    "InvalidPaddingError",
     "find_potential_ecb",
     "pad_pkcs_7",
     "strip_pkcs_7",
     "detect_potential_repeating_ecb_blocks",
     "ecb_encrypt",
+    "cbc_encrypt_prepadded",
     "ecb_decrypt",
     "cbc_encrypt",
     "cbc_decrypt"
@@ -40,10 +42,20 @@ def pad_pkcs_7(blob, blocksize):
     return blob + padding
 
 
+class InvalidPaddingError(ValueError):
+    pass
+
+
 def strip_pkcs_7(blob):
+    length = len(blob)
+    if length == 0:
+        raise InvalidPaddingError()
     num_padding = blob[-1]
+    if num_padding == 0 or length < num_padding:
+        raise InvalidPaddingError()
     for byte in blob[-num_padding:]:
-        assert byte == num_padding
+        if byte != num_padding:
+            raise InvalidPaddingError()
     return blob[:-num_padding]
 
 
@@ -59,8 +71,8 @@ def ecb_decrypt(key, ciphertext):
     return strip_pkcs_7(decrypted)
 
 
-def cbc_encrypt(key, iv, plaintext):
-    blocks = brake_into_keysize_blocks(pad_pkcs_7(plaintext, 16), 16)
+def cbc_encrypt_prepadded(key, iv, plaintext):
+    blocks = brake_into_keysize_blocks(plaintext, 16)
     cipher = AES.new(key, AES.MODE_ECB)
 
     def cryptoblocks():
@@ -71,6 +83,10 @@ def cbc_encrypt(key, iv, plaintext):
             yield last_block
 
     return b''.join([cb for cb in cryptoblocks()])
+
+
+def cbc_encrypt(key, iv, plaintext):
+    return cbc_encrypt_prepadded(key, iv, pad_pkcs_7(plaintext, 16))
 
 
 def cbc_decrypt(key, iv, ciphertext):

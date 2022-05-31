@@ -2,17 +2,23 @@ import base64
 import secrets
 
 import kvserialize
-from block_crypt import cbc_encrypt, \
+from bitfiddle import \
+    brake_into_keysize_blocks, \
+    get_block
+from block_crypt import \
+    InvalidPaddingError, \
+    cbc_encrypt, \
+    cbc_encrypt_prepadded, \
     ecb_decrypt, \
     ecb_encrypt, \
-    detect_potential_repeating_ecb_blocks,\
-    cbc_decrypt
+    detect_potential_repeating_ecb_blocks, \
+    cbc_decrypt, \
+    strip_pkcs_7
 from primitive_crypt import xor_buffers
-
 from util import bytes_from_file
-from util import random_blob
 from util import equal_prefix_length
-from bitfiddle import get_block
+from util import lines_from_file
+from util import random_blob
 
 
 def challenge_11_oracle(input_blob):
@@ -232,3 +238,79 @@ def challenge_16_forge(oracle):
     delta = xor_buffers(block2, want)
     evil = xor_buffers(good[0:16], delta) + good[16:]
     return evil
+
+
+class Challenge17Oracle:
+    def __init__(self):
+        self._key = secrets.token_bytes(16)
+        encoded_lines = lines_from_file("inputs/17_input.txt")
+        self._possible_lines = list(map(base64.b64decode, encoded_lines))
+
+    def get_encrypted(self):
+        line = secrets.choice(self._possible_lines)
+        iv = secrets.token_bytes(16)
+        return iv, cbc_encrypt(self._key, iv, line)
+
+    def encrypt_prepadded_input(self, input_):
+        assert len(input_) % 16 == 0
+        iv = secrets.token_bytes(16)
+        return iv, cbc_encrypt_prepadded(self._key, iv, input_)
+
+    def check_padding(self, iv, encrypted):
+        try:
+            cbc_decrypt(self._key, iv, encrypted)
+            return True
+        except InvalidPaddingError:
+            return False
+
+    def check_line_possible(self, line):
+        return line in self._possible_lines
+
+
+def cbc_padding_crack_check_iv_suffix(oracle, suffix, block):
+    suffix_length = len(suffix)
+    if suffix_length == 0:
+        return True
+    prefix_length = len(block) - suffix_length
+    test_iv = bytes(prefix_length * [0]) + suffix
+    return oracle.check_padding(test_iv, block)
+
+
+def cbc_padding_crack_extend_iv_suffix(oracle, old_suffix, block):
+    old_length = len(old_suffix)
+    new_length = old_length + 1
+    if old_length == 0:
+        new_susuffix = b''
+    else:
+        trafo_byte = new_length ^ old_length
+        new_susuffix = xor_buffers(old_suffix, bytes(old_length * [trafo_byte]))
+    for i in range(256):
+        candidate = bytes([i]) + new_susuffix
+        if cbc_padding_crack_check_iv_suffix(oracle, candidate, block):
+            yield candidate
+
+
+def cbc_padding_crack_single_block(oracle, block, previous_block):
+    possible_iv_suffixes = [b""]
+    for i in range(16):
+        possible_iv_suffixes = [new_suffix
+                                for old_suffix in possible_iv_suffixes
+                                for new_suffix in
+                                cbc_padding_crack_extend_iv_suffix(
+                                    oracle, old_suffix, block)]
+    forged_iv = possible_iv_suffixes[0]
+    oracle.check_padding(forged_iv, block)
+    mask = xor_buffers(bytes(16 * [16]), previous_block)
+    return xor_buffers(forged_iv, mask)
+
+
+def cbc_padding_crack(oracle, iv, encrypted):
+    assert len(encrypted) % 16 == 0
+    encrypted_blocks = [iv] + brake_into_keysize_blocks(encrypted, 16)
+
+    def plainblocks():
+        for i in range(1, len(encrypted_blocks)):
+            yield cbc_padding_crack_single_block(
+                oracle, encrypted_blocks[i], encrypted_blocks[i - 1])
+
+    return strip_pkcs_7(b''.join([block for block in plainblocks()]))

@@ -1,11 +1,11 @@
 # WIP Cryptopals solutions
 These are my in-progress Python solutions to the 
 [Cryptopals crypto challenges](https://cryptopals.com/). 
-So far, I'm up to challenge 16. In addition to learning about cryptography I'm
+So far, I'm up to challenge 17. In addition to learning about cryptography I'm
 also doing these as an exercise in test-driven development.
 
 ## Missing files
-In the public version of this repositiory some files in the `inputs/` directory
+In the public version of this repository some files in the `inputs/` directory
 are missing because of copyright concerns. This will make a lot of the tests fail.
 The missing files are basically 
 * encrypted inputs, which can be retrieved from
@@ -43,3 +43,21 @@ the byte immediately after the corresponding plaintext block. This doesn't work
 for challenge 14, where the insertion point for our text can be in the middle
 of a block. A better way is to think about how the size of the cyphertext
 changes as plaintext size increases.
+
+### Challenge 15: PKCS#7 padding validation
+This is actually harder than it looks and I actually only noticed some edge
+case on challenge 17. Some important details:
+* If the plaintext length is a multiple of the block length, we need a full
+  block of padding.
+* 0 is never a valid padding byte. A naive implementation might see a 0 at the
+  end of the padded text and then strip 0 bytes, i.e. pass it unchanged.
+* Padding is invalidated by replacing one of its bytes with a random byte
+  different from what it was before, _except that replacing the last byte with
+  1 results in a different valid padded text_
+  
+### Challenge 17: The CBC padding oracle
+Mistake that took a while: After guessing a fake previous block / iv for a
+given block, it must be xored not just with the block's worth of padding  it
+results in, but also with the actual previous block / iv. This is easily 
+acceptable in hindsight but xoring in only the fake padding at first seamed
+so obvious that I didn't think carefully about the actual construction.

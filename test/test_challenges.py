@@ -12,6 +12,7 @@ import block_crypt as bc
 import challenge_specific as cs
 import primitive_crypt as pc
 import util
+from . import strategies as own_strat
 
 
 class TestChallenge1:
@@ -155,9 +156,9 @@ def test_challenge_14(prefix, suffix):
 
 def test_challenge_15():
     assert bc.strip_pkcs_7(b"ICE ICE BABY\x04\x04\x04\x04") == b"ICE ICE BABY"
-    with pytest.raises(AssertionError):
+    with pytest.raises(bc.InvalidPaddingError):
         bc.strip_pkcs_7(b"ICE ICE BABY\x05\x05\x05\x05")
-    with pytest.raises(AssertionError):
+    with pytest.raises(bc.InvalidPaddingError):
         bc.strip_pkcs_7(b"ICE ICE BABY\x01\x02\x03\x04")
 
 
@@ -165,3 +166,27 @@ def test_challenge_16():
     oracle = cs.Challenge16Oracle()
     assert not oracle.is_admin(oracle.encrypt(';admin=true;'))
     assert oracle.is_admin(cs.challenge_16_forge(oracle))
+
+
+class TestChallenge16:
+    @pytest.fixture(autouse=True)
+    def set_up(self):
+        self.oracle = cs.Challenge17Oracle()
+
+    def test_padding_roundtrip(self):
+        iv, encrypted = self.oracle.get_encrypted()
+        assert self.oracle.check_padding(iv, encrypted)
+
+    @hyp.given(input=own_strat.non_pkcs7_padded_blob(16))
+    def test_padding_check_random(self, input_):
+        iv, bad = self.oracle.encrypt_prepadded_input(input_)
+        assert not self.oracle.check_padding(iv, bad)
+
+    @hyp.given(line=strat.text())
+    def test_random_line(self, line):
+        assert not self.oracle.check_line_possible(line)
+
+    def test_crack(self):
+        iv, encrypted = self.oracle.get_encrypted()
+        decrypted = cs.cbc_padding_crack(self.oracle, iv, encrypted)
+        assert self.oracle.check_line_possible(decrypted)

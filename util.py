@@ -1,6 +1,7 @@
 __all__ = ["bytes_from_file",
            "equal_prefix_length",
            "find_minimal",
+           "lines_from_file",
            "random_blob",
            "repeating_zip",
            "remove_nones",
