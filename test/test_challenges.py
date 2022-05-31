@@ -142,6 +142,7 @@ class TestChallenge13:
         assert cs.challenge_13_is_admin(cs.challenge_13_forge())
 
 
+@hyp.settings(deadline=None)
 @hyp.given(prefix=strat.binary(), suffix=strat.binary())
 def test_challenge_14(prefix, suffix):
     oracle = cs.Challenge14Oracle(prefix=prefix, suffix=suffix)
