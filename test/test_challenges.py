@@ -168,7 +168,7 @@ def test_challenge_16():
     assert oracle.is_admin(cs.challenge_16_forge(oracle))
 
 
-class TestChallenge16:
+class TestChallenge17:
     @pytest.fixture(autouse=True)
     def set_up(self):
         self.oracle = cs.Challenge17Oracle()
@@ -177,7 +177,7 @@ class TestChallenge16:
         iv, encrypted = self.oracle.get_encrypted()
         assert self.oracle.check_padding(iv, encrypted)
 
-    @hyp.given(input=own_strat.non_pkcs7_padded_blob(16))
+    @hyp.given(input_=own_strat.non_pkcs7_padded_blob(16))
     def test_padding_check_random(self, input_):
         iv, bad = self.oracle.encrypt_prepadded_input(input_)
         assert not self.oracle.check_padding(iv, bad)
@@ -190,3 +190,12 @@ class TestChallenge16:
         iv, encrypted = self.oracle.get_encrypted()
         decrypted = cs.cbc_padding_crack(self.oracle, iv, encrypted)
         assert self.oracle.check_line_possible(decrypted)
+
+
+def test_challenge_18():
+    cyphertext = base64.b64decode(util.string_from_file("inputs/18_input.txt"))
+    key = b"YELLOW SUBMARINE"
+    nonce = 0
+    plaintext = bc.ctr_transcrypt(key, nonce, cyphertext)
+    solution = base64.b64decode(util.string_from_file("inputs/18_solution.txt"))
+    assert plaintext == solution

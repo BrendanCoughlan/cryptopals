@@ -1,7 +1,7 @@
 # WIP Cryptopals solutions
 These are my in-progress Python solutions to the 
 [Cryptopals crypto challenges](https://cryptopals.com/). 
-So far, I'm up to challenge 17. In addition to learning about cryptography I'm
+So far, I'm up to challenge 18. In addition to learning about cryptography I'm
 also doing these as an exercise in test-driven development.
 
 ## Missing files
@@ -61,3 +61,9 @@ given block, it must be xored not just with the block's worth of padding  it
 results in, but also with the actual previous block / iv. This is easily 
 acceptable in hindsight but xoring in only the fake padding at first seamed
 so obvious that I didn't think carefully about the actual construction.
+
+### Challenge 18: Implement CTR, the stream cipher mode
+The decrypted sample text is a single line ending in a space character. It
+turns out the usual text editors won't let me save that to a file without 
+removing the space or adding a new line character. Surely somehow possible,
+but I just took the easy way out and b64encoded the solution.

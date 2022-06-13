@@ -56,3 +56,14 @@ def test_cbc_roundtrip(key, iv, plaintext):
     encrypted = bc.cbc_encrypt(key, iv, plaintext)
     decrypted = bc.cbc_decrypt(key, iv, encrypted)
     assert plaintext == decrypted
+
+
+@hyp.given(
+    key=strategies.binary(min_size=16, max_size=16),
+    nonce=strategies.integers(min_value=0, max_value=2**64-1),
+    plaintext=strategies.binary()
+)
+def test_ctr_roundtrip(key, nonce, plaintext):
+    encrypted = bc.ctr_transcrypt(key, nonce, plaintext)
+    decrypted = bc.ctr_transcrypt(key, nonce, encrypted)
+    assert plaintext == decrypted
