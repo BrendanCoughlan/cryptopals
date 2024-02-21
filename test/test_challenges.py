@@ -9,9 +9,9 @@ from Crypto.Cipher import AES
 
 import bitfiddle as bf
 import block_crypt as bc
-import stream_crypt as sc
 import challenge_specific as cs
 import primitive_crypt as pc
+import stream_crypt as sc
 import util
 from . import strategies as own_strat
 

@@ -2,12 +2,16 @@ __all__ = [
     "ctr_transcrypt"
 ]
 
+# noinspection PyPackageRequirements
+# false alert, is in requirements as pycryptodome
 from Crypto.Cipher import AES
+
 from bitfiddle import brake_into_keysize_blocks
 from primitive_crypt import xor_buffers
 
+
 def ctr_keystream(key, nonce, block_count):
-    if nonce < 0 or nonce > 2**64 or block_count < 0 or block_count > 2**64:
+    if nonce < 0 or nonce > 2 ** 64 or block_count < 0 or block_count > 2 ** 64:
         raise ValueError()
     plain_nonce = nonce.to_bytes(8, byteorder="little", signed=False)
     plain_count = block_count.to_bytes(8, byteorder="little", signed=False)
