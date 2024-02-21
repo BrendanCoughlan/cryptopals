@@ -9,6 +9,7 @@ from Crypto.Cipher import AES
 
 import bitfiddle as bf
 import block_crypt as bc
+import stream_crypt as sc
 import challenge_specific as cs
 import primitive_crypt as pc
 import util
@@ -196,6 +197,6 @@ def test_challenge_18():
     cyphertext = base64.b64decode(util.string_from_file("inputs/18_input.txt"))
     key = b"YELLOW SUBMARINE"
     nonce = 0
-    plaintext = bc.ctr_transcrypt(key, nonce, cyphertext)
+    plaintext = sc.ctr_transcrypt(key, nonce, cyphertext)
     solution = base64.b64decode(util.string_from_file("inputs/18_solution.txt"))
     assert plaintext == solution
