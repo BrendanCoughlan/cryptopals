@@ -1,5 +1,6 @@
 __all__ = [
     "xor_buffers",
+    "xor_buffers_nonrepeating",
     "break_single_byte_xor",
     "find_single_byte_xor"
 ]
@@ -9,12 +10,16 @@ import operator
 from bitfiddle import xor_pairs, hamming_distance, byte_from_int, \
     brake_into_keysize_blocks
 from english_distance import english_distance
-from util import repeating_zip, find_minimal, remove_nones
+from util import nonrepeating_zip, repeating_zip, find_minimal, remove_nones
 
 
 def xor_buffers(left, right):
     """Xor two bytes-like objects, repeating the shorter as needed"""
     return bytes(xor_pairs(repeating_zip(left, right)))
+
+
+def xor_buffers_nonrepeating(left, right):
+    return bytes(xor_pairs(nonrepeating_zip(left, right)))
 
 
 def _attempt_decode(blob):

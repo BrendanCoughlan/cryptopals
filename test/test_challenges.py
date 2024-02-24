@@ -200,3 +200,17 @@ def test_challenge_18():
     plaintext = sc.ctr_transcrypt(key, nonce, cyphertext)
     solution = base64.b64decode(util.string_from_file("inputs/18_solution.txt"))
     assert plaintext == solution
+
+
+def test_challenge_19():
+    b64_lines = util.lines_from_file("inputs/19_inputs.txt")
+    plaintexts = [base64.b64decode(line) for line in b64_lines]
+    nonce = 0
+    key = util.random_blob(16, 16)
+    cyphertexts = [sc.ctr_transcrypt(key, nonce, plaintext) for plaintext in plaintexts]
+    guesses = util.obj_from_json_file("inputs/19_guesses.json")
+    guessed_keystream = sc.guess_shared_keystream_by_subst(cyphertexts, guesses)
+    guessed_plaintexts = [sc.xor_buffers_nonrepeating(guessed_keystream, text) for text in cyphertexts]
+    assert plaintexts == guessed_plaintexts
+
+

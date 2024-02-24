@@ -1,5 +1,6 @@
 __all__ = [
-    "ctr_transcrypt"
+    "ctr_transcrypt",
+    "guess_shared_keystream_by_subst"
 ]
 
 # noinspection PyPackageRequirements
@@ -8,6 +9,8 @@ from Crypto.Cipher import AES
 
 from bitfiddle import brake_into_keysize_blocks
 from primitive_crypt import xor_buffers
+from primitive_crypt import xor_buffers_nonrepeating
+from util import find_minimal
 
 
 def ctr_keystream(key, nonce, block_count):
@@ -30,3 +33,20 @@ def ctr_transcrypt(key, nonce, data):
     outstream = [xor_buffers(instream[i], keystream[i])
                  for i in range(num_blocks)]
     return b''.join(outstream)
+
+
+def guess_shared_keystream_by_subst(cyphertexts, guesses):
+    def negative_length_criterion(text):
+        return -len(text)
+    longest_cyphertext = find_minimal(cyphertexts, negative_length_criterion)
+    guessed_keystream = bytearray(longest_cyphertext)
+    for guess in guesses:
+        guess_bytes = guess["guess"].encode("utf-8")
+        guess_line = guess["line"]
+        guess_pos = guess["pos"]
+        keystream_bytes = xor_buffers_nonrepeating(guess_bytes, cyphertexts[guess_line][guess_pos:])
+        guessed_keystream = (
+                guessed_keystream[:guess_pos] + keystream_bytes + guessed_keystream[guess_pos+len(guess_bytes):])
+
+    return bytes(guessed_keystream)
+

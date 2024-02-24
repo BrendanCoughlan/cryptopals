@@ -5,6 +5,43 @@ import pytest
 import util
 
 
+class TestNonrepeatingZip:
+
+    def test_inputs_need_length(self):
+        with pytest.raises(TypeError):
+            list(util.repeating_zip(8, 15))
+
+    def test_both_empty(self):
+        assert list(util.nonrepeating_zip([], [])) == []
+
+    def test_left_empty(self):
+        assert list(util.nonrepeating_zip([], [1, 2, 3])) == []
+
+    def test_right_empty(self):
+        assert list(util.nonrepeating_zip([1, 2, 3], [])) == []
+
+    def test_zip_left_longer(self):
+        assert list(util.nonrepeating_zip([1, 2, 3], [1])) == [(1, 1)]
+
+    def test_zip_right_longer(self):
+        assert list(util.nonrepeating_zip([1], [1, 2, 3])) == [(1, 1)]
+
+    def test_zip_equal_length(self):
+        assert list(util.nonrepeating_zip([1, 2, 3], [3, 2, 1])) == \
+               [(1, 3), (2, 2), (3, 1)]
+
+    def test_different_lengths_greater_one(self):
+        assert list(util.nonrepeating_zip([1, 2], [1, 2, 3, 4, 5])) == \
+               [(1, 1), (2, 2)]
+
+    def test_zip_equal_length_one(self):
+        assert list(util.nonrepeating_zip([42], [42])) == [(42, 42)]
+
+    def test_works_with_strings(self):
+        assert list(util.nonrepeating_zip([42, 42], ["forty-two"])) == \
+               [(42, "forty-two")]
+
+
 class TestRepeatingZip:
 
     def test_inputs_need_length(self):

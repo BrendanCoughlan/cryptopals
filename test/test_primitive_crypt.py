@@ -1,4 +1,5 @@
 import hypothesis as hyp
+import hypothesis.strategies as strat
 import pytest
 
 import primitive_crypt as pc
@@ -15,8 +16,26 @@ class TestXorBuffers:
         with pytest.raises(ValueError):
             pc.xor_buffers([1, 2, 3], [512, 8, 15])
 
-    def test_identical(self):
-        assert pc.xor_buffers(b"bla", b"bla") == b"\0\0\0"
+    @hyp.given(buf=strat.binary(min_size=1))
+    def test_identical(self, buf):
+        length = len(buf)
+        assert pc.xor_buffers(buf, buf) == b"\0" * length
+
+
+class TestXorBuffersNonrepeating:
+
+    def test_constraints(self):
+        with pytest.raises(TypeError):
+            pc.xor_buffers_nonrepeating("bla", "bla")
+        with pytest.raises(TypeError):
+            pc.xor_buffers_nonrepeating(42, 42)
+        with pytest.raises(ValueError):
+            pc.xor_buffers_nonrepeating([1, 2, 3], [512, 8, 15])
+
+    @hyp.given(buf=hyp.strategies.binary())
+    def test_identical(self, buf):
+        length = len(buf)
+        assert pc.xor_buffers_nonrepeating(buf, buf) == b"\0" * length
 
 
 class TestAttemptDecode:

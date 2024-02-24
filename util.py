@@ -2,11 +2,14 @@ __all__ = ["bytes_from_file",
            "equal_prefix_length",
            "find_minimal",
            "lines_from_file",
+           "nonrepeating_zip",
+           "obj_from_json_file",
            "random_blob",
            "repeating_zip",
            "remove_nones",
            "string_from_file"]
 
+import json
 import secrets
 
 
@@ -22,6 +25,17 @@ def string_from_file(file_name):
 def lines_from_file(file_name):
     with open(file_name, "r") as file:
         return file.readlines()
+
+
+def obj_from_json_file(file_name):
+    with open(file_name, "r") as file:
+        return json.load(file)
+
+
+def nonrepeating_zip(left, right):
+    length = min(len(left), len(right))
+    for ii in range(length):
+        yield left[ii], right[ii]
 
 
 def repeating_zip(left, right):
