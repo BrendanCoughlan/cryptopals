@@ -19,6 +19,18 @@ class TestPadPkcs7:
             b'YELLOW SUBMARINE' + \
             b'\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10'
 
+    def test_strip_empty(self):
+        with pytest.raises(bc.InvalidPaddingError):
+            bc.strip_pkcs_7(b'')
+
+    def test_strip_ends_zero(self):
+        with pytest.raises(bc.InvalidPaddingError):
+            bc.strip_pkcs_7(b'bla\0')
+
+    def test_strip_excessive_padding(self):
+        with pytest.raises(bc.InvalidPaddingError):
+            bc.strip_pkcs_7(b'bla\xff')
+
     @hyp.given(
         blob=strategies.binary(),
         blocksize=strategies.integers(min_value=1, max_value=255)
