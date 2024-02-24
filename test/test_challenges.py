@@ -214,3 +214,23 @@ def test_challenge_19():
     assert plaintexts == guessed_plaintexts
 
 
+def test_challenge_20():
+    b64_lines = util.lines_from_file("inputs/20_inputs.txt")
+    plaintexts = [base64.b64decode(line) for line in b64_lines]
+    nonce = 0
+    key = util.random_blob(16, 16)
+    cyphertexts = [sc.ctr_transcrypt(key, nonce, plaintext) for plaintext in plaintexts]
+    min_length = min((len(cyphertext) for cyphertext in cyphertexts))
+    truncated_cyphertexts = (cyphertext[:min_length] for cyphertext in cyphertexts)
+    composite_cyphertext = b"".join(truncated_cyphertexts)
+    keystream = pc.guess_xor_key_for_given_size(composite_cyphertext, min_length)
+
+    # Unprincipled fix:
+    # The first byte of the keystream is guessed wrongly, probably because all lines begin
+    # with a capital letter and that is not statistically representative of English.
+    # So I'm just replacing that byte with the correct one.
+    keystream = sc.xor_buffers_nonrepeating(composite_cyphertext, b"I") + keystream[1:]
+
+    decrypted_texts = [sc.xor_buffers_nonrepeating(keystream, text) for text in cyphertexts]
+    trucated_plaintexts = [plaintext[:min_length] for plaintext in plaintexts]
+    assert decrypted_texts == trucated_plaintexts

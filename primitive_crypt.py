@@ -2,7 +2,8 @@ __all__ = [
     "xor_buffers",
     "xor_buffers_nonrepeating",
     "break_single_byte_xor",
-    "find_single_byte_xor"
+    "find_single_byte_xor",
+    "guess_xor_key_for_given_size"
 ]
 
 import operator
@@ -98,7 +99,7 @@ def _transpose_blocks(blocks):
     return [create_block(ii) for ii in range(len_blocks)]
 
 
-def _guess_xor_key_for_given_size(ciphertext, size):
+def guess_xor_key_for_given_size(ciphertext, size):
     sections = _transpose_blocks(brake_into_keysize_blocks(ciphertext, size))
     decryptions = [break_single_byte_xor(section) for section in sections]
     key_bytes = (decryption[0] for decryption in decryptions)
@@ -110,7 +111,7 @@ def break_repeating_key_xor(ciphertext, max_size):
              size in range(1, max_size)]
     candidate_pairs = sorted(rated, key=operator.itemgetter(1))
     candidates_sizes = [pair[0] for pair in candidate_pairs]
-    candidate_keys = [_guess_xor_key_for_given_size(ciphertext, size) for
+    candidate_keys = [guess_xor_key_for_given_size(ciphertext, size) for
                       size in candidates_sizes]
     candidate__decryptions = (
         (key, xor_buffers(key, ciphertext)) for key in candidate_keys)

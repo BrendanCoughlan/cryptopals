@@ -84,5 +84,5 @@ def test_guess_xor_key_forgiven_size():
                 "and shout!".encode()
     key = b"bla"
     ciphertext = pc.xor_buffers(plaintext, key)
-    guessed_key = pc._guess_xor_key_for_given_size(ciphertext, len(key))
+    guessed_key = pc.guess_xor_key_for_given_size(ciphertext, len(key))
     assert guessed_key == key
